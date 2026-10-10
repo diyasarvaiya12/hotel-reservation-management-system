@@ -264,7 +264,19 @@ export function getBookings(): BookingDetail[] {
       localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(INITIAL_DEMO_BOOKINGS));
       return INITIAL_DEMO_BOOKINGS;
     }
-    return JSON.parse(raw) || [];
+    const parsed: BookingDetail[] = JSON.parse(raw) || [];
+    // Deduplicate existing localStorage records by bookingId / id to keep store clean
+    const seen = new Set<string>();
+    const deduplicated = parsed.filter((b) => {
+      const key = b.bookingId || b.id;
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+    if (deduplicated.length !== parsed.length) {
+      localStorage.setItem(STORAGE_KEYS.BOOKINGS, JSON.stringify(deduplicated));
+    }
+    return deduplicated;
   } catch (e) {
     console.error('Error reading bookings:', e);
     return [];
@@ -282,16 +294,35 @@ export function saveBookings(bookings: BookingDetail[]): void {
 
 /**
  * Creates and saves a new booking associated with a specific userId.
+ * Updates in-place if a booking with the same ID already exists.
  */
 export function createBooking(
-  bookingData: Omit<BookingDetail, 'id' | 'bookingId'> & { bookingId?: string }
+  bookingData: Omit<BookingDetail, 'id' | 'bookingId'> & { id?: string; bookingId?: string }
 ): BookingDetail {
   const allBookings = getBookings();
+  const targetId = bookingData.bookingId || bookingData.id;
+
+  // Prevent duplicate keys by updating existing entry if booking ID matches
+  if (targetId) {
+    const existingIndex = allBookings.findIndex(
+      (b) => b.bookingId === targetId || b.id === targetId
+    );
+    if (existingIndex !== -1) {
+      allBookings[existingIndex] = {
+        ...allBookings[existingIndex],
+        ...bookingData,
+        id: targetId,
+        bookingId: targetId,
+      };
+      saveBookings(allBookings);
+      return allBookings[existingIndex];
+    }
+  }
 
   // Generate unique sequential or random ID like BOOK001, BOOK002...
   const count = allBookings.length + 1;
   const generatedId =
-    bookingData.bookingId ||
+    targetId ||
     `BOOK${String(count).padStart(3, '0')}_${Math.floor(100 + Math.random() * 900)}`;
 
   const newBooking: BookingDetail = {
@@ -313,7 +344,14 @@ export function createBooking(
 export function getBookingsByUserId(userId: string): BookingDetail[] {
   if (!userId) return [];
   const allBookings = getBookings();
-  return allBookings.filter((b) => b.userId === userId);
+  const userBookings = allBookings.filter((b) => b.userId === userId);
+  const seen = new Set<string>();
+  return userBookings.filter((b) => {
+    const key = b.bookingId || b.id;
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 export function getBookingById(bookingId: string): BookingDetail | undefined {

@@ -23,8 +23,13 @@ export default function Navbar() {
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -51,6 +56,7 @@ export default function Navbar() {
   };
 
   const userInitial = user?.name ? user.name.trim().charAt(0).toUpperCase() : 'U';
+  const showUser = isMounted && isLoggedIn && !!user;
 
   return (
     <header className="sticky top-0 z-50 bg-[#FAF8F5]/90 backdrop-blur-md border-b border-stone-200/80 text-stone-900">
@@ -93,7 +99,7 @@ export default function Navbar() {
 
           {/* Right Action: User Avatar OR Sign In / Register */}
           <div className="hidden md:flex items-center gap-3">
-            {isLoggedIn && user ? (
+            {showUser ? (
               /* Logged In Circular Avatar & Dropdown */
               <div className="relative" ref={dropdownRef}>
                 <button
@@ -185,7 +191,7 @@ export default function Navbar() {
 
           {/* Mobile Menu Button */}
           <div className="flex md:hidden items-center gap-2">
-            {isLoggedIn && user && (
+            {showUser && (
               <Link
                 href="/profile"
                 className="w-9 h-9 rounded-full bg-[#8C6D46] text-white font-serif font-bold text-sm flex items-center justify-center border border-amber-200/80"
@@ -207,7 +213,7 @@ export default function Navbar() {
       {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-stone-200 bg-[#FAF8F5] px-4 pt-3 pb-6 space-y-2 shadow-lg">
-          {isLoggedIn && user && (
+          {showUser && (
             <div className="p-3 bg-white border border-stone-200 rounded-xl mb-3 flex items-center justify-between">
               <div>
                 <p className="text-sm font-bold text-stone-900">{user.name}</p>
@@ -237,7 +243,7 @@ export default function Navbar() {
             );
           })}
 
-          {isLoggedIn && user ? (
+          {showUser ? (
             <div className="pt-3 border-t border-stone-200 space-y-1">
               <Link
                 href="/my-bookings"

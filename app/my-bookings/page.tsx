@@ -171,12 +171,12 @@ function MyBookingsContent() {
       {/* Bookings List */}
       {bookings.length > 0 ? (
         <div className="space-y-5">
-          {bookings.map((b) => {
+          {bookings.map((b, idx) => {
             const isCancelled = b.reservationStatus === 'CANCELLED';
 
             return (
               <div
-                key={b.bookingId}
+                key={`${b.bookingId || b.id || idx}-${idx}`}
                 className={`bg-white border rounded-3xl p-6 sm:p-8 transition-all shadow-sm flex flex-col md:flex-row gap-6 items-start md:items-center justify-between ${
                   isCancelled ? 'border-stone-200 opacity-80' : 'border-stone-200/90 hover:border-[#8C6D46]/40 hover:shadow-md'
                 }`}

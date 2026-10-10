@@ -6,7 +6,6 @@ import Link from 'next/link';
 import PaymentForm from '@/components/PaymentForm';
 import BookingSummary from '@/components/BookingSummary';
 import { getStoredBooking, saveConfirmedBooking, DEFAULT_BOOKING } from '@/lib/bookingStorage';
-import { createBooking } from '@/utils/storage';
 import { BookingDetail, PaymentMethod } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
@@ -31,8 +30,8 @@ export default function PaymentPage() {
   const handlePaymentSuccess = (method: PaymentMethod) => {
     const finalUserId = user?.id || booking.userId || 'user_dia_001';
 
-    // Create booking in hrms_bookings linked strictly to finalUserId
-    const confirmedData = createBooking({
+    // Save confirmed booking directly to avoid duplicate entries in localStorage
+    saveConfirmedBooking({
       ...booking,
       userId: finalUserId,
       paymentMethod: method,
@@ -47,7 +46,6 @@ export default function PaymentPage() {
       },
     });
 
-    saveConfirmedBooking(confirmedData);
     router.push('/booking/confirmation');
   };
 
