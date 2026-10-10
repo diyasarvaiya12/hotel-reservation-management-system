@@ -2,12 +2,22 @@
 
 import { BookingDetail, Customer, PaymentMethod } from '@/types';
 import { HOTELS_DATA, calculateBookingPrice } from '@/data/mockData';
+import { 
+  createBooking, 
+  getBookingsByUserId, 
+  getCurrentUser, 
+  getDraftBooking, 
+  setDraftBooking,
+  clearDraftBooking 
+} from '@/utils/storage';
 
 const STORAGE_KEY = 'hrms_current_booking';
 const CONFIRMED_BOOKING_KEY = 'hrms_latest_confirmed_booking';
 
 export const DEFAULT_BOOKING: BookingDetail = {
-  bookingId: 'HRMS-BK-782194',
+  id: 'BOOK001',
+  bookingId: 'BOOK001',
+  userId: 'user_dia_001',
   hotelId: HOTELS_DATA[0].id,
   hotelName: HOTELS_DATA[0].name,
   hotelCity: HOTELS_DATA[0].city,
@@ -26,9 +36,9 @@ export const DEFAULT_BOOKING: BookingDetail = {
   discount: Math.round(HOTELS_DATA[0].roomTypes[0].basePrice * 3 * 0.05),
   grandTotal: Math.round(HOTELS_DATA[0].roomTypes[0].basePrice * 3 * 1.07),
   customer: {
-    fullName: 'Aditya Sharma',
-    email: 'aditya.sharma@example.com',
-    phone: '+91 98201 12345',
+    fullName: 'Dia Sarvaiya',
+    email: 'dia@gmail.com',
+    phone: '9876543210',
     address: '42 Marine Drive, Nariman Point, Mumbai',
     specialRequests: 'High floor room facing ocean requested if available.',
   },
@@ -40,6 +50,9 @@ export const DEFAULT_BOOKING: BookingDetail = {
 export function getStoredBooking(): BookingDetail {
   if (typeof window === 'undefined') return DEFAULT_BOOKING;
   try {
+    const draft = getDraftBooking();
+    if (draft) return { ...DEFAULT_BOOKING, ...draft };
+
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_BOOKING;
     return JSON.parse(raw);
@@ -67,6 +80,7 @@ export function saveBooking(booking: Partial<BookingDetail>): BookingDetail {
     }
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setDraftBooking(updated);
     return updated;
   } catch (err) {
     console.error('Failed to save booking', err);
@@ -74,21 +88,49 @@ export function saveBooking(booking: Partial<BookingDetail>): BookingDetail {
   }
 }
 
-export function saveConfirmedBooking(booking: BookingDetail): void {
-  if (typeof window === 'undefined') return;
+/**
+ * Saves confirmed booking into hrms_bookings array linked to current user
+ */
+export function saveConfirmedBooking(booking: BookingDetail): BookingDetail {
+  if (typeof window === 'undefined') return booking;
   try {
-    localStorage.setItem(CONFIRMED_BOOKING_KEY, JSON.stringify(booking));
+    const user = getCurrentUser();
+    const finalUserId = booking.userId || user?.id || 'guest_user';
+
+    const saved = createBooking({
+      ...booking,
+      userId: finalUserId,
+      reservationStatus: 'CONFIRMED',
+      paymentStatus: 'SUCCESSFUL',
+    });
+
+    localStorage.setItem(CONFIRMED_BOOKING_KEY, JSON.stringify(saved));
+    clearDraftBooking();
+    return saved;
   } catch (err) {
     console.error('Failed to save confirmed booking', err);
+    return booking;
   }
 }
 
+/**
+ * Retrieves latest confirmed booking for the current user or fallback
+ */
 export function getConfirmedBooking(): BookingDetail {
   if (typeof window === 'undefined') return DEFAULT_BOOKING;
   try {
+    const user = getCurrentUser();
+    if (user) {
+      const userBookings = getBookingsByUserId(user.id);
+      if (userBookings.length > 0) {
+        return userBookings[0]; // Most recent
+      }
+    }
+
     const raw = localStorage.getItem(CONFIRMED_BOOKING_KEY);
-    if (!raw) return getStoredBooking();
-    return JSON.parse(raw);
+    if (raw) return JSON.parse(raw);
+
+    return getStoredBooking();
   } catch (err) {
     return getStoredBooking();
   }

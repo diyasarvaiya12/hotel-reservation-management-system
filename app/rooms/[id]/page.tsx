@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { findRoomTypeAcrossHotels, calculateBookingPrice } from '@/data/mockData';
 import { saveBooking } from '@/lib/bookingStorage';
+import { useAuth } from '@/context/AuthContext';
 import { 
   Building, 
   Users, 
@@ -13,13 +14,15 @@ import {
   Check, 
   ArrowLeft, 
   ArrowRight, 
-  Sparkles
+  Sparkles,
+  Lock
 } from 'lucide-react';
 
 function RoomAvailabilityContent() {
   const params = useParams();
   const router = useRouter();
   const roomTypeId = params?.id as string;
+  const { isLoggedIn, user } = useAuth();
 
   const match = findRoomTypeAcrossHotels(roomTypeId);
   const hotel = match?.hotel;
@@ -57,6 +60,7 @@ function RoomAvailabilityContent() {
   const handleReserve = () => {
     if (!hotel || !roomType) return;
 
+    // Save booking state
     saveBooking({
       bookingId: 'HRMS-BK-' + Math.floor(100000 + Math.random() * 900000),
       hotelId: hotel.id,
@@ -76,11 +80,25 @@ function RoomAvailabilityContent() {
       tax: pricing.tax,
       discount: pricing.discount,
       grandTotal: pricing.grandTotal,
+      customer: user ? {
+        fullName: user.name,
+        email: user.email,
+        phone: '+91 98201 12345',
+        address: '42 Marine Drive, Nariman Point, Mumbai',
+        specialRequests: '',
+      } : undefined,
       reservationStatus: 'PENDING',
       paymentStatus: 'PENDING',
     });
 
-    router.push('/booking');
+    // Check login state as per flow requirements:
+    // If NOT logged in -> Navigate to Login / Register page, then return to /booking
+    // If logged in -> Directly navigate to /booking
+    if (!isLoggedIn) {
+      router.push('/login?redirect=/booking');
+    } else {
+      router.push('/booking');
+    }
   };
 
   if (!hotel || !roomType) {
@@ -271,7 +289,7 @@ function RoomAvailabilityContent() {
               <span className="text-[11px] font-bold uppercase tracking-wider text-[#8C6D46] block mb-1">
                 Stay Configuration
               </span>
-              <h3 className="text-xl font-bold text-stone-900">Reserve This Room</h3>
+              <h3 className="text-xl font-bold text-stone-900">Book This Room</h3>
             </div>
 
             {/* Dates & Guests Selector */}
@@ -351,14 +369,23 @@ function RoomAvailabilityContent() {
               </div>
             </div>
 
-            {/* Action Button */}
+            {/* Action Button: Book Now / Book This Room */}
             <button
               onClick={handleReserve}
               disabled={!hasAvailableRooms || !selectedRoomObj}
               className="w-full py-3.5 px-6 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-medium text-sm shadow-sm transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              <span>{hasAvailableRooms ? 'Reserve This Room' : 'Sold Out / Unavailable'}</span>
-              <ArrowRight className="w-4 h-4 text-amber-200" />
+              {!isLoggedIn ? (
+                <>
+                  <Lock className="w-4 h-4 text-amber-200" />
+                  <span>Book This Room (Sign In First)</span>
+                </>
+              ) : (
+                <>
+                  <span>Book This Room</span>
+                  <ArrowRight className="w-4 h-4 text-amber-200" />
+                </>
+              )}
             </button>
 
             <p className="text-[11px] text-center text-stone-500">

@@ -187,6 +187,13 @@ export default function ConfirmationCard({ booking }: ConfirmationCardProps) {
           <span>Explore More Hotels</span>
         </Link>
 
+        <Link
+          href="/my-bookings"
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#8C6D46] font-medium text-sm transition-all border border-amber-200"
+        >
+          <span>View All My Bookings</span>
+        </Link>
+
         <button
           onClick={handlePrint}
           className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white font-medium text-sm shadow-sm transition-all cursor-pointer"

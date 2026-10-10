@@ -7,18 +7,35 @@ import GuestForm from '@/components/GuestForm';
 import BookingSummary from '@/components/BookingSummary';
 import { getStoredBooking, saveBooking, DEFAULT_BOOKING } from '@/lib/bookingStorage';
 import { Customer, BookingDetail } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export default function BookingPage() {
   const router = useRouter();
+  const { user, isLoggedIn } = useAuth();
   const [booking, setBooking] = useState<BookingDetail>(DEFAULT_BOOKING);
   const [mounted, setMounted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    setBooking(getStoredBooking());
+    const stored = getStoredBooking();
+    if (user) {
+      stored.customer = {
+        ...stored.customer,
+        fullName: user.name || stored.customer.fullName,
+        email: user.email || stored.customer.email,
+        phone: user.phone || stored.customer.phone,
+      };
+    }
+    setBooking(stored);
     setMounted(true);
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    if (mounted && !isLoggedIn) {
+      router.push('/login?redirect=/booking');
+    }
+  }, [mounted, isLoggedIn, router]);
 
   const handleGuestSubmit = (customer: Customer) => {
     setIsSubmitting(true);

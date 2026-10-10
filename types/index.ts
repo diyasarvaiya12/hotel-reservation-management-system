@@ -24,8 +24,11 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  role: Role;
+  password?: string;
+  phone?: string;
+  role?: Role;
   avatarUrl?: string;
+  createdAt?: string;
 }
 
 export interface Customer {
@@ -83,7 +86,9 @@ export interface Hotel {
 }
 
 export interface BookingDetail {
+  id?: string;
   bookingId: string;
+  userId: string;
   hotelId: string;
   hotelName: string;
   hotelCity: string;

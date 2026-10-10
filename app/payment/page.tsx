@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import PaymentForm from '@/components/PaymentForm';
 import BookingSummary from '@/components/BookingSummary';
-import { getStoredBooking, saveBooking, saveConfirmedBooking, DEFAULT_BOOKING } from '@/lib/bookingStorage';
+import { getStoredBooking, saveConfirmedBooking, DEFAULT_BOOKING } from '@/lib/bookingStorage';
+import { createBooking } from '@/utils/storage';
 import { BookingDetail, PaymentMethod } from '@/types';
+import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 
 export default function PaymentPage() {
   const router = useRouter();
+  const { user, isLoggedIn } = useAuth();
   const [booking, setBooking] = useState<BookingDetail>(DEFAULT_BOOKING);
   const [mounted, setMounted] = useState(false);
 
@@ -19,17 +22,32 @@ export default function PaymentPage() {
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    if (mounted && !isLoggedIn) {
+      router.push('/login?redirect=/booking');
+    }
+  }, [mounted, isLoggedIn, router]);
+
   const handlePaymentSuccess = (method: PaymentMethod) => {
-    const confirmedData: BookingDetail = {
+    const finalUserId = user?.id || booking.userId || 'user_dia_001';
+
+    // Create booking in hrms_bookings linked strictly to finalUserId
+    const confirmedData = createBooking({
       ...booking,
+      userId: finalUserId,
       paymentMethod: method,
       paymentStatus: 'SUCCESSFUL',
       reservationStatus: 'CONFIRMED',
-    };
+      customer: {
+        fullName: user?.name || booking.customer.fullName,
+        email: user?.email || booking.customer.email,
+        phone: user?.phone || booking.customer.phone,
+        address: booking.customer.address,
+        specialRequests: booking.customer.specialRequests,
+      },
+    });
 
-    saveBooking(confirmedData);
     saveConfirmedBooking(confirmedData);
-
     router.push('/booking/confirmation');
   };
 
@@ -75,7 +93,7 @@ export default function PaymentPage() {
           Secure Checkout Simulation
         </h1>
         <p className="text-xs sm:text-sm text-stone-600 mt-1">
-          Select your simulated payment gateway to finalize the room lock and generate your official booking confirmation voucher.
+          Select your simulated payment gateway to finalize the room lock and save your official booking to localStorage.
         </p>
       </div>
 
