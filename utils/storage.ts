@@ -123,6 +123,13 @@ export function findUserByEmail(email: string): User | undefined {
   return users.find((u) => u.email.trim().toLowerCase() === cleanEmail);
 }
 
+export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+export function isValidEmail(email: string): boolean {
+  if (!email) return false;
+  return EMAIL_REGEX.test(email.trim());
+}
+
 export function getUserById(userId: string): User | undefined {
   const users = getUsers();
   return users.find((u) => u.id === userId);
@@ -137,23 +144,32 @@ export function registerUser(userData: {
   const cleanEmail = userData.email.trim().toLowerCase();
   const cleanName = userData.name.trim();
 
-  if (!cleanName) {
-    return { success: false, error: 'Full name is required.' };
+  if (!cleanName || cleanName.length < 2) {
+    return { success: false, error: 'Please enter a valid full name (minimum 2 characters).' };
   }
   if (!cleanEmail) {
     return { success: false, error: 'Email address is required.' };
   }
+  if (!isValidEmail(cleanEmail)) {
+    return { success: false, error: 'Please provide a valid email address (e.g. yourname@example.com).' };
+  }
+  if (!userData.password || userData.password.length < 6) {
+    return { success: false, error: 'Password must be at least 6 characters long.' };
+  }
+  if (userData.phone && userData.phone.replace(/\D/g, '').length > 0 && userData.phone.replace(/\D/g, '').length < 10) {
+    return { success: false, error: 'Please provide a valid 10-digit phone number.' };
+  }
 
   const existing = findUserByEmail(cleanEmail);
   if (existing) {
-    return { success: false, error: 'An account with this email already exists.' };
+    return { success: false, error: 'An account with this email already exists. Please sign in instead.' };
   }
 
   const newUser: User = {
     id: 'user_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
     name: cleanName,
     email: cleanEmail,
-    password: userData.password || '123456',
+    password: userData.password,
     phone: userData.phone?.trim() || '',
     role: 'CUSTOMER',
     createdAt: new Date().toISOString(),
@@ -174,15 +190,25 @@ export function loginUser(
   password?: string
 ): { success: boolean; user?: User; error?: string } {
   const cleanEmail = email.trim().toLowerCase();
-  const user = findUserByEmail(cleanEmail);
 
-  if (!user) {
-    return { success: false, error: 'Invalid email or password.' };
+  if (!cleanEmail) {
+    return { success: false, error: 'Please enter your email address.' };
+  }
+  if (!isValidEmail(cleanEmail)) {
+    return { success: false, error: 'Please enter a valid email address format (e.g. yourname@example.com).' };
+  }
+  if (!password) {
+    return { success: false, error: 'Please enter your password.' };
   }
 
-  // Demo password verification
-  if (password && user.password && user.password !== password) {
-    return { success: false, error: 'Invalid email or password.' };
+  const user = findUserByEmail(cleanEmail);
+  if (!user) {
+    return { success: false, error: 'No account found with this email. Please check your email or sign up.' };
+  }
+
+  // Password verification
+  if (user.password && user.password !== password) {
+    return { success: false, error: 'Incorrect password. Please try again.' };
   }
 
   setCurrentUser(user);

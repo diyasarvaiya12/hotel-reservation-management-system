@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Customer } from '@/types';
 import { User, ArrowRight, AlertCircle, ShieldCheck } from 'lucide-react';
+import { isValidEmail } from '@/utils/storage';
 
 interface GuestFormProps {
   initialCustomer?: Partial<Customer>;
@@ -34,8 +35,8 @@ export default function GuestForm({
 
     if (!email.trim()) {
       errs.email = 'Email address is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      errs.email = 'Please provide a valid email address';
+    } else if (!isValidEmail(email)) {
+      errs.email = 'Please provide a valid email address (e.g. name@domain.com)';
     }
 
     if (!phone.trim()) {
